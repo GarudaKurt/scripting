@@ -33,7 +33,7 @@ pipeline {
                     steps {
                         dir('ruby_scripts') {
                             echo 'Ruby scripts start observing...'
-                            sh 'ruby -c observer.rb'
+                            sh 'ruby observer.rb'
                         }
                     }
                 }
