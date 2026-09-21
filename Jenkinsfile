@@ -31,11 +31,9 @@ pipeline {
                 }
                 stage('Ruby Pipeline') {
                     steps {
-                        steps {
-                            dir('ruby_scripts') {
-                                echo 'Ruby scripts start observing...'
-                                sh 'ruby -c observer.rb'
-                            }
+                        dir('ruby_scripts') {
+                            echo 'Ruby scripts start observing...'
+                            sh 'ruby -c observer.rb'
                         }
                     }
                 }
