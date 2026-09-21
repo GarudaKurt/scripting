@@ -18,22 +18,26 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Check agent') {
-            steps {
-                sh '''
-                    echo "==== Agent Information ===="
-                    echo "User: $(whoami)"
-                    echo "Hostname: $(hostname)"
-                    echo "OS:"
-                    cat /etc/os-release
-                    echo "Java: "
-                    java --version
-                    echo "Bazel: "
-                    bazel --version
-                    echo "Ruby: "
-                    ruby --version
-                '''
+        stage('Build & Test') {
+            parallel {
+                stage('C++ Pipeline') {
+                    dir('cplusplus') {
+                        echo 'Start build and test c++'
+                        sh 'bazel build //...'
+                        sh 'bazel test //... --test_output=all'
+                    }
+                }
+                stage('Ruby Pipeline') {
+                    steps {
+                        dir('ruby_scripts') {
+                            echo 'Ruby scripts start observing...'
+                            sh 'ruby -c observer.rb'
+                        }
+                    }
+                }
             }
         }
     }
 }
+
+
