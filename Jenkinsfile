@@ -18,6 +18,15 @@ pipeline {
                 checkout scm
             }
         }
+        stage('Check Ruby') {
+            steps {
+                sh '''
+                    echo "PATH=$PATH"
+                    which ruby
+                    ruby --version
+                '''
+            }
+        }
         stage('Build & Test') {
             parallel {
                 stage('C++ Pipeline') {
@@ -33,7 +42,7 @@ pipeline {
                     steps {
                         dir('ruby_scripts') {
                             echo 'Ruby scripts start observing...'
-                            sh 'ruby observer.rb'
+                            sh 'ruby -c observer.rb'
                         }
                     }
                 }
