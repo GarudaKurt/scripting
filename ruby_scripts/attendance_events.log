@@ -1,0 +1,15 @@
+[2026-09-18 17:16:52] Connecting to broker.hivemq.com:1883...
+[2026-09-18 17:16:56] Connected. Subscribed to 'embedded/attendance'. Listening for events... (Ctrl+C to stop)
+[2026-09-18 17:17:31] Observer stopped by user (Ctrl+C).
+[2026-09-18 17:17:41] Connecting to broker.hivemq.com:1883...
+[2026-09-18 17:17:41] Connected. Subscribed to 'embedded/attendance'. Listening for events... (Ctrl+C to stop)
+[2026-09-18 17:17:50] Observer stopped by user (Ctrl+C).
+[2026-09-18 17:18:38] Connecting to broker.hivemq.com:1883...
+[2026-09-18 17:18:39] Connected. Subscribed to 'embedded/attendance'. Listening for events... (Ctrl+C to stop)
+[2026-09-18 17:19:37] TIME_IN  | device=esp32-sim-01 | employee=EMP-1024 | time=17:19:33
+[2026-09-18 17:20:11] TIME_IN  | device=esp32-sim-02 | employee=EMP-1024 | time=17:20:10
+[2026-09-18 17:20:32] Observer stopped by user (Ctrl+C).
+[2026-09-18 17:31:57] Connecting to broker.hivemq.com:1883...
+[2026-09-18 17:32:01] Connected. Subscribed to 'embedded/attendance'. Listening for events... (Ctrl+C to stop)
+[2026-09-18 17:32:05] TIME_IN  | device=esp32-sim-02 | employee=EMP-1024 | time=17:32:04
+[2026-09-18 19:05:27] CRITICAL | Unexpected error: Errno::ECONNRESET - Connection reset by peer @ io_fillbuf - fd:5 
