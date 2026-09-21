@@ -21,17 +21,21 @@ pipeline {
         stage('Build & Test') {
             parallel {
                 stage('C++ Pipeline') {
-                    dir('cplusplus') {
-                        echo 'Start build and test c++'
-                        sh 'bazel build //...'
-                        sh 'bazel test //... --test_output=all'
+                    steps {
+                        dir('cplusplus') {
+                            echo 'Start build and test c++'
+                            sh 'bazel build //...'
+                            sh 'bazel test //... --test_output=all'
+                        }
                     }
                 }
                 stage('Ruby Pipeline') {
                     steps {
-                        dir('ruby_scripts') {
-                            echo 'Ruby scripts start observing...'
-                            sh 'ruby -c observer.rb'
+                        steps {
+                            dir('ruby_scripts') {
+                                echo 'Ruby scripts start observing...'
+                                sh 'ruby -c observer.rb'
+                            }
                         }
                     }
                 }
