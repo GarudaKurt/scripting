@@ -1,6 +1,7 @@
 pipeline { 
-    agent any
-    
+    agent { 
+        label 'Broker-agent'
+    }
     stages {
         stage('Hello') {
             steps {
