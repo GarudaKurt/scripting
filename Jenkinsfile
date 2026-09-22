@@ -13,7 +13,7 @@ pipeline {
     }
 
     environment {
-        GITHUB_TOKEN = credentials('github-token')
+        GITHUB_TOKEN = credentials('github-tokens')
         REPO_OWNER   = 'GarudaKurt'
         REPO_NAME    = 'scripting'
     }
