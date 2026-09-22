@@ -72,11 +72,8 @@ pipeline {
 
     stage('Auto-Merge') {
         when {
-            allOf {
-                changeRequest()
-                expression {
-                    env.CHANGE_TARGET == 'main'
-                }
+            expression {
+                return env.CHANGE_ID != null
             }
         }
 
@@ -91,40 +88,52 @@ pipeline {
                 echo "Attempting to merge..."
                 echo "===================================================="
 
-                def mergeResponse = sh(
-                    script: '''
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'automation',
+                        usernameVariable: 'GITHUB_USER',
+                        passwordVariable: 'GITHUB_TOKEN'
+                    )
+                ]) {
+                    sh '''
                         set -e
 
-                        curl -sS -X PUT \
-                            -H "Authorization: Bearer $GITHUB_TOKEN" \
+                        RESPONSE=$(curl -sS -w '\\n%{http_code}' \
+                            -X PUT \
+                            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
                             -H "Accept: application/vnd.github+json" \
                             -H "X-GitHub-Api-Version: 2022-11-28" \
                             -H "Content-Type: application/json" \
                             -d "{\"commit_title\":\"Auto-merge PR #${CHANGE_ID}\",\"merge_method\":\"squash\"}" \
-                            "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${CHANGE_ID}/merge"
-                    ''',
-                    returnStdout: true
-                ).trim()
+                            "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${CHANGE_ID}/merge")
 
-                echo "GitHub merge response:"
-                echo mergeResponse
+                        HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+                        BODY=$(echo "$RESPONSE" | sed '$d')
 
-                def merged = sh(
-                    script: """
-                        printf '%s' '${mergeResponse.replace("'", "'\\\\''")}' |
-                        jq -r '.merged // false'
-                    """,
-                    returnStdout: true
-                ).trim()
+                        echo "GitHub HTTP status: $HTTP_CODE"
+                        echo "GitHub merge response:"
+                        echo "$BODY"
 
-                if (merged == 'true') {
-                    echo "PR #${env.CHANGE_ID} successfully merged to ${env.CHANGE_TARGET}."
-                } else {
-                    error "PR #${env.CHANGE_ID} merge failed."
+                        if [ "$HTTP_CODE" != "200" ]; then
+                            echo "GitHub merge request failed."
+                            exit 1
+                        fi
+
+                        MERGED=$(echo "$BODY" | jq -r '.merged')
+
+                        if [ "$MERGED" = "true" ]; then
+                            echo "PR #${CHANGE_ID} successfully merged."
+                        else
+                            echo "GitHub did not merge the PR."
+                            echo "$BODY"
+                            exit 1
+                        fi
+                    '''
                 }
             }
         }
     }
+
 
     }
 
