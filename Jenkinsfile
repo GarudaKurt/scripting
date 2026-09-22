@@ -27,9 +27,6 @@ pipeline {
         }
 
         stage('Show PR Info') {
-            when {
-                expression { env.CHANGE_ID != null }   // CHANGE_ID only exists for PR builds
-            }
             steps {
                 echo "Building PR #${env.CHANGE_ID}: ${env.CHANGE_TITLE}"
                 echo "Source branch: ${env.CHANGE_BRANCH}"
@@ -73,9 +70,6 @@ pipeline {
         }
 
         stage('Auto-Merge') {
-            when {
-                expression { env.CHANGE_ID != null }
-            }
             steps {
                 script {
                     echo "All required checks passed — merging PR #${env.CHANGE_ID} into ${env.CHANGE_TARGET}..."
