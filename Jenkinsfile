@@ -28,9 +28,12 @@ pipeline {
 
         stage('Show PR Info') {
             steps {
+                echo "===================================================="
+                echo "               Checking commits....                 "
                 echo "Building PR #${env.CHANGE_ID}: ${env.CHANGE_TITLE}"
                 echo "Source branch: ${env.CHANGE_BRANCH}"
                 echo "Target branch: ${env.CHANGE_TARGET}"
+                echo "===================================================="
             }
         }
 
