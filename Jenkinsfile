@@ -13,18 +13,12 @@ pipeline {
     }
 
     environment {
-        GITHUB_TOKEN = credentials('github-tokens')
+        GITHUB_TOKEN = credentials('automation')
         REPO_OWNER   = 'GarudaKurt'
         REPO_NAME    = 'scripting'
     }
 
     stages {
-
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
 
         stage('Show PR Info') {
             steps {
