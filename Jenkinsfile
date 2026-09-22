@@ -29,11 +29,12 @@ pipeline {
         stage('Show PR Info') {
             steps {
                 echo "===================================================="
-                echo "               Checking commits.....                 "
-                echo "Building PR #${env.CHANGE_ID}: ${env.CHANGE_TITLE}"
-                echo "Source branch: ${env.CHANGE_BRANCH}"
-                echo "Target branch: ${env.CHANGE_TARGET}"
-                echo "Done..."
+                echo "                 Pull Request Info                  "
+                echo "===================================================="
+                echo "PR Number:    #${env.CHANGE_ID}"
+                echo "Title:        ${env.CHANGE_TITLE}"
+                echo "Source:       ${env.CHANGE_BRANCH}"
+                echo "Target:       ${env.CHANGE_TARGET}"
                 echo "===================================================="
             }
         }
@@ -64,7 +65,9 @@ pipeline {
 
         stage('Ruby Integration Tests') {
             when {
-                expression { fileExists('ruby_scripts/tests') }
+                expression {
+                    fileExists('ruby_scripts/tests')
+                }
             }
             steps {
                 dir('ruby_scripts') {
@@ -74,27 +77,53 @@ pipeline {
         }
 
         stage('Auto-Merge') {
+            when {
+                allOf {
+                    changeRequest()
+                    expression {
+                        env.CHANGE_TARGET == 'main'
+                    }
+                }
+            }
+
             steps {
                 script {
-                    echo "All required checks passed — merging PR #${env.CHANGE_ID} into ${env.CHANGE_TARGET}..."
+                    echo "===================================================="
+                    echo "                  Auto-Merge PR                     "
+                    echo "===================================================="
+                    echo "PR #${env.CHANGE_ID}"
+                    echo "Target: ${env.CHANGE_TARGET}"
+                    echo "All required checks passed."
+                    echo "Attempting to merge..."
+                    echo "===================================================="
 
                     def mergeResponse = sh(
                         script: """
-                            curl -s -X PUT \
-                            -H "Authorization: token ${GITHUB_TOKEN}" \
-                            -H "Content-Type: application/json" \
-                            -d '{"commit_title": "Auto-merge PR #${env.CHANGE_ID}", "merge_method": "squash"}' \
-                            https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.CHANGE_ID}/merge
+                            curl -s \
+                                -X PUT \
+                                -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                                -H "Accept: application/vnd.github+json" \
+                                -H "X-GitHub-Api-Version: 2022-11-28" \
+                                -H "Content-Type: application/json" \
+                                -d '{"commit_title":"Auto-merge PR #${env.CHANGE_ID}","merge_method":"squash"}' \
+                                "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.CHANGE_ID}/merge"
                         """,
                         returnStdout: true
-                    )
+                    ).trim()
 
-                    echo "Merge response: ${mergeResponse}"
+                    echo "GitHub merge response:"
+                    echo mergeResponse
 
-                    if (mergeResponse.contains('"merged":true')) {
-                        echo "PR #${env.CHANGE_ID} successfully merged to ${env.CHANGE_TARGET}."
+                    def mergeResult = readJSON text: mergeResponse
+
+                    if (mergeResult.merged == true) {
+                        echo "===================================================="
+                        echo "PR #${env.CHANGE_ID} successfully merged."
+                        echo "Target branch: ${env.CHANGE_TARGET}"
+                        echo "===================================================="
                     } else {
-                        error "Merge failed. Response: ${mergeResponse}"
+                        def message = mergeResult.message ?: 'Unknown merge error'
+                        error "PR #${env.CHANGE_ID} was not merged: ${message}"
                     }
                 }
             }
@@ -105,9 +134,11 @@ pipeline {
         success {
             echo "Pipeline completed successfully."
         }
+
         failure {
             echo "Pipeline failed — PR will not be merged."
         }
+
         always {
             cleanWs()
         }
