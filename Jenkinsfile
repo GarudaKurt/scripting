@@ -13,27 +13,23 @@ pipeline {
     }
 
     environment {
-        GITHUB_TOKEN = credentials('github-token')
+        GITHUB_TOKEN = credentials('automation')
         REPO_OWNER   = 'GarudaKurt'
         REPO_NAME    = 'scripting'
     }
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Show PR Info') {
-            when {
-                expression { env.CHANGE_ID != null }   // CHANGE_ID only exists for PR builds
-            }
             steps {
-                echo "Building PR #${env.CHANGE_ID}: ${env.CHANGE_TITLE}"
-                echo "Source branch: ${env.CHANGE_BRANCH}"
-                echo "Target branch: ${env.CHANGE_TARGET}"
+                echo "===================================================="
+                echo "                 Pull Request Info                  "
+                echo "===================================================="
+                echo "PR Number:    #${env.CHANGE_ID}"
+                echo "Title:        ${env.CHANGE_TITLE}"
+                echo "Source:       ${env.CHANGE_BRANCH}"
+                echo "Target:       ${env.CHANGE_TARGET}"
+                echo "===================================================="
             }
         }
 
@@ -63,7 +59,9 @@ pipeline {
 
         stage('Ruby Integration Tests') {
             when {
-                expression { fileExists('ruby_scripts/tests') }
+                expression {
+                    fileExists('ruby_scripts/tests')
+                }
             }
             steps {
                 dir('ruby_scripts') {
@@ -72,47 +70,26 @@ pipeline {
             }
         }
 
-        stage('Check PR Approval & Auto-Merge') {
-            when {
-                expression { env.CHANGE_ID != null }
-            }
+        stage('Test GitHub Authentication') {
             steps {
-                script {
-                    def approvalCount = sh(
-                        script: """
-                            curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
-                            https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.CHANGE_ID}/reviews \
-                            | grep -o '"state": *"APPROVED"' | wc -l
-                        """,
-                        returnStdout: true
-                    ).trim().toInteger()
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'automation',
+                        usernameVariable: 'GITHUB_USER',
+                        passwordVariable: 'GITHUB_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set -e
 
-                    echo "Approval count: ${approvalCount}"
+                        echo "Testing GitHub authentication..."
 
-                    if (approvalCount >= 1) {
-                        echo "PR has ${approvalCount} approval(s) and all tests passed — merging..."
-
-                        def mergeResponse = sh(
-                            script: """
-                                curl -s -X PUT \
-                                -H "Authorization: token ${GITHUB_TOKEN}" \
-                                -H "Content-Type: application/json" \
-                                -d '{"commit_title": "Auto-merge PR #${env.CHANGE_ID}", "merge_method": "squash"}' \
-                                https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.CHANGE_ID}/merge
-                            """,
-                            returnStdout: true
-                        )
-
-                        echo "Merge response: ${mergeResponse}"
-
-                        if (mergeResponse.contains('"merged":true')) {
-                            echo "PR #${env.CHANGE_ID} successfully merged to master."
-                        } else {
-                            error "Merge failed. Response: ${mergeResponse}"
-                        }
-                    } else {
-                        echo "PR does not yet have the required approval(s). Skipping auto-merge."
-                    }
+                        curl -sS \
+                            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                            -H "Accept: application/vnd.github+json" \
+                            -H "X-GitHub-Api-Version: 2022-11-28" \
+                            https://api.github.com/user | jq '{login, id}'
+                    '''
                 }
             }
         }
@@ -122,9 +99,11 @@ pipeline {
         success {
             echo "Pipeline completed successfully."
         }
+
         failure {
             echo "Pipeline failed — PR will not be merged."
         }
+
         always {
             cleanWs()
         }
