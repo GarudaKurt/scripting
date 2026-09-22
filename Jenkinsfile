@@ -70,58 +70,62 @@ pipeline {
             }
         }
 
-        stage('Auto-Merge') {
-            when {
-                allOf {
-                    changeRequest()
-                    expression {
-                        env.CHANGE_TARGET == 'main'
-                    }
-                }
-            }
-
-            steps {
-                script {
-                    echo "===================================================="
-                    echo "                  Auto-Merge PR                     "
-                    echo "===================================================="
-                    echo "PR #${env.CHANGE_ID}"
-                    echo "Target: ${env.CHANGE_TARGET}"
-                    echo "All required checks passed."
-                    echo "Attempting to merge..."
-                    echo "===================================================="
-
-                    def mergeResponse = sh(
-                        script: """
-                            curl -s \
-                                -X PUT \
-                                -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-                                -H "Accept: application/vnd.github+json" \
-                                -H "X-GitHub-Api-Version: 2022-11-28" \
-                                -H "Content-Type: application/json" \
-                                -d '{"commit_title":"Auto-merge PR #${env.CHANGE_ID}","merge_method":"squash"}' \
-                                "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.CHANGE_ID}/merge"
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-                    echo "GitHub merge response:"
-                    echo mergeResponse
-
-                    def mergeResult = readJSON text: mergeResponse
-
-                    if (mergeResult.merged == true) {
-                        echo "===================================================="
-                        echo "PR #${env.CHANGE_ID} successfully merged."
-                        echo "Target branch: ${env.CHANGE_TARGET}"
-                        echo "===================================================="
-                    } else {
-                        def message = mergeResult.message ?: 'Unknown merge error'
-                        error "PR #${env.CHANGE_ID} was not merged: ${message}"
-                    }
+    stage('Auto-Merge') {
+        when {
+            allOf {
+                changeRequest()
+                expression {
+                    env.CHANGE_TARGET == 'main'
                 }
             }
         }
+
+        steps {
+            script {
+                echo "===================================================="
+                echo "                  Auto-Merge PR"
+                echo "===================================================="
+                echo "PR #${env.CHANGE_ID}"
+                echo "Target: ${env.CHANGE_TARGET}"
+                echo "All required checks passed."
+                echo "Attempting to merge..."
+                echo "===================================================="
+
+                def mergeResponse = sh(
+                    script: '''
+                        set -e
+
+                        curl -sS -X PUT \
+                            -H "Authorization: Bearer $GITHUB_TOKEN" \
+                            -H "Accept: application/vnd.github+json" \
+                            -H "X-GitHub-Api-Version: 2022-11-28" \
+                            -H "Content-Type: application/json" \
+                            -d "{\"commit_title\":\"Auto-merge PR #${CHANGE_ID}\",\"merge_method\":\"squash\"}" \
+                            "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${CHANGE_ID}/merge"
+                    ''',
+                    returnStdout: true
+                ).trim()
+
+                echo "GitHub merge response:"
+                echo mergeResponse
+
+                def merged = sh(
+                    script: """
+                        printf '%s' '${mergeResponse.replace("'", "'\\\\''")}' |
+                        jq -r '.merged // false'
+                    """,
+                    returnStdout: true
+                ).trim()
+
+                if (merged == 'true') {
+                    echo "PR #${env.CHANGE_ID} successfully merged to ${env.CHANGE_TARGET}."
+                } else {
+                    error "PR #${env.CHANGE_ID} merge failed."
+                }
+            }
+        }
+    }
+
     }
 
     post {
