@@ -19,7 +19,11 @@ pipeline {
     }
 
     stages {
-
+        stage("Hello") {
+            steps{
+                echo "Hello world test"
+            }
+        }
         stage('Show PR Info') {
             steps {
                 echo "===================================================="
