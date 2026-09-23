@@ -21,7 +21,7 @@ pipeline {
 
         stage('Hello World') {
             steps {
-                echp "Hello World!"
+                echo "Hello World!"
             }
         }
 
