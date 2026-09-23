@@ -88,7 +88,9 @@ pipeline {
                     sh '''
                         set -e
 
-                        echo "Testing GitHub authentication..."
+                        echo "===================================================="
+                        echo "             GitHub Authentication Test             "
+                        echo "===================================================="
 
                         curl -sS \
                             -H "Authorization: Bearer ${GITHUB_TOKEN}" \
@@ -96,12 +98,14 @@ pipeline {
                             -H "X-GitHub-Api-Version: 2022-11-28" \
                             "https://api.github.com/user" |
                             jq '{login, id}'
+
+                        echo "GitHub authentication successful."
                     '''
                 }
             }
         }
 
-        stage('Check PR Status') {
+        stage('Check PR') {
             when {
                 expression {
                     return env.CHANGE_ID != null
@@ -119,27 +123,19 @@ pipeline {
                     sh '''
                         set -e
 
-                        echo "Checking PR #${CHANGE_ID}..."
+                        echo "===================================================="
+                        echo "                 Checking Pull Request              "
+                        echo "===================================================="
 
-                        RESPONSE=$(curl -sS \
-                            -w '\\n%{http_code}' \
+                        curl -sS \
                             -H "Authorization: Bearer ${GITHUB_TOKEN}" \
                             -H "Accept: application/vnd.github+json" \
                             -H "X-GitHub-Api-Version: 2022-11-28" \
-                            "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${CHANGE_ID}")
+                            "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${CHANGE_ID}" \
+                            > /tmp/github_pr.json
 
-                        HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
-                        BODY=$(echo "$RESPONSE" | sed '$d')
-
-                        echo "GitHub HTTP status: ${HTTP_CODE}"
-
-                        if [ "$HTTP_CODE" != "200" ]; then
-                            echo "Failed to retrieve PR information."
-                            echo "$BODY"
-                            exit 1
-                        fi
-
-                        echo "$BODY" | jq '{
+                        echo "PR information:"
+                        jq '{
                             number,
                             title,
                             state,
@@ -148,24 +144,24 @@ pipeline {
                             mergeable_state,
                             head: .head.ref,
                             base: .base.ref
-                        }'
+                        }' /tmp/github_pr.json
 
-                        STATE=$(echo "$BODY" | jq -r '.state')
-                        DRAFT=$(echo "$BODY" | jq -r '.draft')
-                        MERGEABLE=$(echo "$BODY" | jq -r '.mergeable')
+                        STATE=$(jq -r '.state' /tmp/github_pr.json)
+                        DRAFT=$(jq -r '.draft' /tmp/github_pr.json)
+                        MERGEABLE=$(jq -r '.mergeable' /tmp/github_pr.json)
 
-                        if [ "$STATE" != "open" ]; then
-                            echo "PR #${CHANGE_ID} is not open."
+                        if [ "${STATE}" != "open" ]; then
+                            echo "ERROR: PR #${CHANGE_ID} is not open."
                             exit 1
                         fi
 
-                        if [ "$DRAFT" = "true" ]; then
-                            echo "PR #${CHANGE_ID} is still a draft."
+                        if [ "${DRAFT}" = "true" ]; then
+                            echo "ERROR: PR #${CHANGE_ID} is still a draft."
                             exit 1
                         fi
 
-                        if [ "$MERGEABLE" = "false" ]; then
-                            echo "PR #${CHANGE_ID} is not mergeable."
+                        if [ "${MERGEABLE}" = "false" ]; then
+                            echo "ERROR: PR #${CHANGE_ID} is not mergeable."
                             exit 1
                         fi
 
@@ -200,11 +196,15 @@ pipeline {
                             passwordVariable: 'GITHUB_TOKEN'
                         )
                     ]) {
+
                         sh '''
                             set -e
 
-                            RESPONSE=$(curl -sS \
-                                -w '\\n%{http_code}' \
+                            echo "Sending merge request to GitHub..."
+
+                            HTTP_CODE=$(curl -sS \
+                                -o /tmp/github_merge_response.json \
+                                -w "%{http_code}" \
                                 -X PUT \
                                 -H "Authorization: Bearer ${GITHUB_TOKEN}" \
                                 -H "Accept: application/vnd.github+json" \
@@ -213,26 +213,32 @@ pipeline {
                                 -d "{\"commit_title\":\"Auto-merge PR #${CHANGE_ID}\",\"merge_method\":\"squash\"}" \
                                 "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${CHANGE_ID}/merge")
 
-                            HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
-                            BODY=$(echo "$RESPONSE" | sed '$d')
-
                             echo "GitHub HTTP status: ${HTTP_CODE}"
                             echo "GitHub merge response:"
-                            echo "$BODY" | jq .
 
-                            if [ "$HTTP_CODE" != "200" ]; then
-                                echo "GitHub merge request failed."
+                            jq . /tmp/github_merge_response.json
+
+                            if [ "${HTTP_CODE}" != "200" ]; then
+                                echo ""
+                                echo "ERROR: GitHub merge request failed."
                                 exit 1
                             fi
 
-                            MERGED=$(echo "$BODY" | jq -r '.merged')
+                            MERGED=$(jq -r '.merged' /tmp/github_merge_response.json)
 
-                            if [ "$MERGED" = "true" ]; then
+                            if [ "${MERGED}" = "true" ]; then
+                                echo ""
                                 echo "===================================================="
-                                echo "PR #${CHANGE_ID} successfully merged."
+                                echo "       PR #${CHANGE_ID} SUCCESSFULLY MERGED         "
                                 echo "===================================================="
                             else
-                                echo "GitHub did not merge the PR."
+                                echo ""
+                                echo "ERROR: GitHub returned HTTP 200 but the PR was not merged."
+
+                                MESSAGE=$(jq -r '.message // "No message returned"' /tmp/github_merge_response.json)
+
+                                echo "GitHub message: ${MESSAGE}"
+
                                 exit 1
                             fi
                         '''
