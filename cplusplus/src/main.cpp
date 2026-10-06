@@ -13,7 +13,7 @@
 int main() {
     attendance_request_t req = { "esp32-sim-02", "EMP-1024" };
     char payload[256];
-
+    printf("Hello World test PR\n");
     if (build_time_in_payload(&req, payload, sizeof(payload)) != API_SUCCESS) {
         fprintf(stderr, "Failed to build time-in payload\n");
         return EXIT_FAILURE;
