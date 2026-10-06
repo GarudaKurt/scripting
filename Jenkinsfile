@@ -13,8 +13,14 @@ pipeline {
     }
 
     environment {
+<<<<<<< HEAD
         REPO_OWNER = 'GarudaKurt'
         REPO_NAME  = 'scripting'
+=======
+        GITHUB_TOKEN = credentials('github-tokens')
+        REPO_OWNER   = 'GarudaKurt'
+        REPO_NAME    = 'scripting'
+>>>>>>> e92c1aa6401db77471566fea1943efe74633de8d
     }
 
     stages {
