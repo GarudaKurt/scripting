@@ -13,28 +13,16 @@ pipeline {
     }
 
     environment {
-<<<<<<< HEAD
         REPO_OWNER = 'GarudaKurt'
         REPO_NAME  = 'scripting'
-=======
-        GITHUB_TOKEN = credentials('github-tokens')
-        REPO_OWNER   = 'GarudaKurt'
-        REPO_NAME    = 'scripting'
->>>>>>> e92c1aa6401db77471566fea1943efe74633de8d
     }
 
     stages {
 
-        stage('Hello World') {
-            steps {
-                echo "Hello World!"
-            }
-        }
-
         stage('Show PR Info') {
             steps {
                 echo "===================================================="
-                echo "                 Pull Request Info"
+                echo "                 Pull Request Info                  "
                 echo "===================================================="
                 echo "PR Number:    #${env.CHANGE_ID}"
                 echo "Title:        ${env.CHANGE_TITLE}"
