@@ -28,6 +28,7 @@ end
 
 def handle_message(raw_payload)
   data = JSON.parse(raw_payload)
+  puts "This is test B"
 
   event_type = classify_event(data)
   device_id = data["device_id"] || "unknown"
