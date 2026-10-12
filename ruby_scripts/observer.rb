@@ -17,6 +17,7 @@ def log(message)
 end
 
 def classify_event(data)
+  puts "dev works update"
   if data["timeIn"] && !data["timeIn"].to_s.empty?
     :time_in
   elsif data["timeOut"] && !data["timeOut"].to_s.empty?
