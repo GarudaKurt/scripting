@@ -26,7 +26,7 @@ void test_build_payload_tiny_buffer_fails() {
     char tiny_buffer[5];
     int result = build_time_in_payload(&req, tiny_buffer, sizeof(tiny_buffer));
     assert(result == API_ERROR);
-    std::cout << "test_build_payload_tiny_buffer_fails PASSED\n";
+    fprintf(stdout,"test_build_payload_tiny_buffer_fails PASSED\n");
 }
 
 int main() {
