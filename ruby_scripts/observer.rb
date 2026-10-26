@@ -11,12 +11,13 @@ LOG_FILE = "attendance_events.log"
 def log(message)
   timestamp = Time.now.strftime("%Y-%m-%d %H:%M:%S")
   line = "[#{timestamp}] #{message}"
-
+  print "Test A"
   puts line
   File.open(LOG_FILE, "a") { |f| f.puts(line) }
 end
 
 def classify_event(data)
+  puts "dev works update"
   if data["timeIn"] && !data["timeIn"].to_s.empty?
     :time_in
   elsif data["timeOut"] && !data["timeOut"].to_s.empty?
@@ -28,7 +29,9 @@ end
 
 def handle_message(raw_payload)
   data = JSON.parse(raw_payload)
-
+  puts "This is test B"
+  puts "Test C"
+  
   event_type = classify_event(data)
   device_id = data["device_id"] || "unknown"
   employee_id = data["employeeId"] || "unknown"
