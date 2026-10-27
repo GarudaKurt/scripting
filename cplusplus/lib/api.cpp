@@ -14,6 +14,7 @@ int build_time_in_payload(const attendance_request_t* req,
 
     time_t now = get_current_timestamp();
     char time_str[16];
+    printf("Hello world!\n");
     if (format_time_hhmmss(now, time_str, sizeof(time_str)) != API_SUCCESS) {
         return API_ERROR;
     }
