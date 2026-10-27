@@ -35,5 +35,6 @@ int main() {
     test_build_payload_null_request_fails();
     test_build_payload_tiny_buffer_fails();
     std::cout << "All api tests passed.\n";
+    std::cout << "Hello Worl!"<<endl;
     return 0;
 }
