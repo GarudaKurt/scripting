@@ -7,6 +7,7 @@ void test_build_time_in_payload_success() {
     attendance_request_t req = { "esp32-01", "EMP-1024" };
     char buffer[256];
 
+    printf("Hello World\n");
     int result = build_time_in_payload(&req, buffer, sizeof(buffer));
     assert(result == API_SUCCESS);
     assert(strstr(buffer, "\"employeeId\":\"EMP-1024\"") != nullptr);
