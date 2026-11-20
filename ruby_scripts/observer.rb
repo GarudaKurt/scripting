@@ -29,7 +29,7 @@ end
 
 def handle_message(raw_payload)
   data = JSON.parse(raw_payload)
-  
+  puts data
   event_type = classify_event(data)
   device_id = data["device_id"] || "unknown"
   employee_id = data["employeeId"] || "unknown"
